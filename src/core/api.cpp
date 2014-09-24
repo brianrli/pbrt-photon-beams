@@ -33,7 +33,7 @@
 #include "integrators/irradiancecache.h"
 #include "integrators/path.h"
 #include "integrators/photonmap.h"
-#include "integrators/volumephotonmap.h"
+#include "integrators/photonbeam.h"
 #include "integrators/single.h"
 #include "integrators/useprobes.h"
 #include "integrators/whitted.h"
@@ -539,8 +539,8 @@ VolumeIntegrator *MakeVolumeIntegrator(const string &name,
         vi = CreateSingleScatteringIntegrator(paramSet);
     else if (name == "emission")
         vi = CreateEmissionVolumeIntegrator(paramSet);
-    else if (name == "volumephotonmap")
-        vi = CreatePhotonMapVolumeIntegrator(paramSet);
+    else if (name == "photonbeam")
+        vi = CreatePhotonBeamIntegrator(paramSet);
     else
         Warning("Volume integrator \"%s\" unknown.", name.c_str());
     paramSet.ReportUnused();

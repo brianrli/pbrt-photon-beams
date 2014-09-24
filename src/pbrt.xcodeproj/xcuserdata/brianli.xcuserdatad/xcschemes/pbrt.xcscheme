@@ -64,14 +64,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--ncores 1"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "--outfile /Users/brianli/Desktop/pbrt-v2-master/output/output2.exr"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/brianli/Desktop/pbrt-v2-master/spotfog2.pbrt"
+            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output001.exr"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/brianli/Desktop/pbrt_photon_beams/spotfog2.pbrt"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

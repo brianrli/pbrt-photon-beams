@@ -8,12 +8,8 @@ Rotate 5 1 0 0
 Camera "perspective" "float fov" [70]
 
 SurfaceIntegrator "directlighting"
-VolumeIntegrator "volumephotonmap" 
-"integer volumephotons"     [3000]
-"integer finalgathersamples" [0]
-"integer nused" [30]
-"float maxdist" [2]
-"float stepsize" [3]
+VolumeIntegrator "photonbeam" 
+"integer photonbeams"     [500]
 
 WorldBegin
 Translate -1 -1 3

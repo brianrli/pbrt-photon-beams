@@ -11,19 +11,37 @@
 
 struct PhotonBeam {
     //constructor
-    PhotonBeam(const Point &start,
-               const Point &end,
+    PhotonBeam(const Point &st,
+               const Point &en,
                const Spectrum &wt,//alpha
                const Vector &w, //direction
                float radius)
-    : start(start), alpha(wt), dir(w), ri(radius),zmin(0)
+    : start(st), end(en),alpha(wt), ri(radius),zmin(0)
     {
+        dir = Normalize(w);
+        p = (st+en)/2.f;
+        
         //necessary transformations
-        WorldToObject = LookAt(start, end, Cross(end-start,Vector(1,0,0)));
+        WorldToObject = LookAt(st, end, Cross(end-start,Vector(1,0,0)));
         ObjectToWorld = Inverse(WorldToObject);
-        //zmax = ???
+        zmax = (start-end).Length();
     }
-
+    
+    PhotonBeam(const Point &st,//need
+               float zmi, //need
+               PhotonBeam &beam)
+    : start(st),zmin(zmi)
+    {
+        WorldToObject = beam.WorldToObject;
+        ObjectToWorld = beam.ObjectToWorld;
+        ri = beam.ri;
+        dir = beam.dir;
+        end = beam.end;
+        zmax = beam.zmax;
+        alpha = beam.alpha;
+        p = (start+end)/2.f;
+    }
+    
     //computes intersect (bastardized cylinder code)
     bool Intersect(Ray &r,float &t0, float &t1){
         float phi;
@@ -70,11 +88,15 @@ struct PhotonBeam {
         return true;
     }
     
-    //returns photon beam at split point. truncates this photon beam
-    PhotonBeam split(float split_point){}
+    BBox ObjectBound() const {
+        Point p1 = Point(-ri, -ri, zmin);
+        Point p2 = Point( ri,  ri, zmax);
+        return ObjectToWorld(BBox(p1, p2));
+    }
+    
 
     /** Members **/
-    Point start,end;
+    Point start,end,p;
     Spectrum alpha;
     Vector dir;
     Transform ObjectToWorld, WorldToObject;
@@ -86,14 +108,26 @@ struct PhotonBeam {
     float zmin, zmax;
 };
 
-//get cross product of vector with x axis
-//use that as up vector, and bastardize look at function
-//get transform, bastardize cylinder transform
+void split_beam(vector<PhotonBeam> &beam,PhotonBeam sb)
+{
+    //subbeam has desired height
+    if(abs(sb.zmax - sb.zmin) < 2.f){
+        beam.push_back(sb);
+    }
+    //split beam in half
+    else{
+        float split_point = (sb.zmax - sb.zmin)/2.f;
+        Point split = sb.start + (Normalize(sb.dir) * split_point);
+        
+        PhotonBeam newbeam = PhotonBeam(split,sb.zmin+split_point,sb);
+        sb.end = split;
+        sb.zmax = sb.zmin+split_point; //wrong
+        
+        split_beam(beam,sb);
+        split_beam(beam,newbeam);
+    }
+}
 
-
-//write split function
-
-//BVH implementation
 
 inline bool unsuccessful(uint32_t needed, uint32_t found, uint32_t shot) {
     return (found < needed && (found == 0 || found < shot / 1024));
@@ -146,12 +180,12 @@ void PhotonBeamShootingTask::Run() {
                 Intersection photonIsect;
                 float vt0, vt1;
                 //Photon Shooting & Depositing
-                if (volume->IntersectP(photonRay, &vt0, &vt1));
-            
-                Point start = photonRay(vt0);
-                Point end = photonRay(vt1);
-                localPhotonBeams.push_back(PhotonBeam(start, end, alpha, end-start, 0.05f));
-                
+                if (volume->IntersectP(photonRay, &vt0, &vt1))
+                {
+                    Point start = photonRay(vt0);
+                    Point end = photonRay(vt1);
+                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, 0.05f));
+                }
                 PBRT_PHOTON_MAP_FINISHED_RAY_PATH(&photonRay, &alpha);
             }
         
@@ -191,7 +225,6 @@ void PhotonBeamShootingTask::Run() {
         if (volumeDone)
             break;
         }
-    
 }
 
 void PhotonBeamIntegrator::Preprocess(const Scene *scene,
@@ -223,6 +256,14 @@ void PhotonBeamIntegrator::Preprocess(const Scene *scene,
     
     Mutex::Destroy(mutex);
     progress.Done();
+    
+    //construct KdTree
+    if (PhotonBeams.size() > 0)
+        KdTree<PhotonBeam> *BeamMap = new KdTree<PhotonBeam>(PhotonBeams);
+    
+    
+    
+    bool flag = true;
 }
 
 PhotonBeamIntegrator::PhotonBeamIntegrator(int nbeams)

@@ -129,7 +129,7 @@
 		B1D8ECC71170310E00A8A49E /* homogeneous.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B1D8EC791170310E00A8A49E /* homogeneous.cpp */; };
 		B1D8ECC81170310E00A8A49E /* volumegrid.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B1D8EC7B1170310E00A8A49E /* volumegrid.cpp */; };
 		B1E1BB3F1177B63E00337ECE /* pbrtparse.yy in Sources */ = {isa = PBXBuildFile; fileRef = B1D8EB92117030F200A8A49E /* pbrtparse.yy */; };
-		C755C03619B929C100E8BE06 /* volumephotonmap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C755C03419B929C100E8BE06 /* volumephotonmap.cpp */; };
+		C755C03619B929C100E8BE06 /* photonbeam.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C755C03419B929C100E8BE06 /* photonbeam.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -415,11 +415,8 @@
 		B1D8EC7B1170310E00A8A49E /* volumegrid.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = volumegrid.cpp; path = volumes/volumegrid.cpp; sourceTree = SOURCE_ROOT; };
 		B1D8EC7C1170310E00A8A49E /* volumegrid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = volumegrid.h; path = volumes/volumegrid.h; sourceTree = SOURCE_ROOT; };
 		B1D8ECE2117032E500A8A49E /* pbrt */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = pbrt; sourceTree = BUILT_PRODUCTS_DIR; };
-		C755C03419B929C100E8BE06 /* volumephotonmap.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = volumephotonmap.cpp; sourceTree = "<group>"; };
-		C755C03519B929C100E8BE06 /* volumephotonmap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = volumephotonmap.h; sourceTree = "<group>"; };
-		C78C479119C36731004FF203 /* vkdtree.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vkdtree.h; sourceTree = "<group>"; };
-		C78C479219C4EF90004FF203 /* vbvh.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = vbvh.cpp; sourceTree = "<group>"; };
-		C78C479319C4EF90004FF203 /* vbvh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = vbvh.h; sourceTree = "<group>"; };
+		C755C03419B929C100E8BE06 /* photonbeam.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = photonbeam.cpp; sourceTree = "<group>"; };
+		C755C03519B929C100E8BE06 /* photonbeam.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = photonbeam.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -501,8 +498,6 @@
 		B1D8EB67117030F200A8A49E /* core */ = {
 			isa = PBXGroup;
 			children = (
-				C78C479219C4EF90004FF203 /* vbvh.cpp */,
-				C78C479319C4EF90004FF203 /* vbvh.h */,
 				B13B5763161245F5008FFA44 /* targa.c */,
 				B13B5764161245F5008FFA44 /* targa.h */,
 				B130248C1236EE5100206AC7 /* fileutil.cpp */,
@@ -584,7 +579,6 @@
 				B1D8EBB1117030F200A8A49E /* transform.h */,
 				B1D8EBB2117030F200A8A49E /* volume.cpp */,
 				B1D8EBB3117030F200A8A49E /* volume.h */,
-				C78C479119C36731004FF203 /* vkdtree.h */,
 			);
 			path = core;
 			sourceTree = SOURCE_ROOT;
@@ -638,8 +632,8 @@
 				B1D8EBF91170310E00A8A49E /* path.h */,
 				B1D8EBFA1170310E00A8A49E /* photonmap.cpp */,
 				B1D8EBFB1170310E00A8A49E /* photonmap.h */,
-				C755C03419B929C100E8BE06 /* volumephotonmap.cpp */,
-				C755C03519B929C100E8BE06 /* volumephotonmap.h */,
+				C755C03419B929C100E8BE06 /* photonbeam.cpp */,
+				C755C03519B929C100E8BE06 /* photonbeam.h */,
 				B1D8EBFC1170310E00A8A49E /* single.cpp */,
 				B1D8EBFD1170310E00A8A49E /* single.h */,
 				B1D8EBFE1170310E00A8A49E /* useprobes.cpp */,
@@ -1001,7 +995,7 @@
 				B19397BB12083210008317C5 /* shinymetal.cpp in Sources */,
 				B130248E1236EE5100206AC7 /* fileutil.cpp in Sources */,
 				B13B5765161245F5008FFA44 /* targa.c in Sources */,
-				C755C03619B929C100E8BE06 /* volumephotonmap.cpp in Sources */,
+				C755C03619B929C100E8BE06 /* photonbeam.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

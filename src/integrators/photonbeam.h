@@ -18,6 +18,7 @@ public:
     // PhotonIntegrator Public Methods
     
     PhotonBeamIntegrator(int nbeams);
+    ~PhotonBeamIntegrator(){}
     
     Spectrum Li(const Scene *scene,
                 const Renderer *renderer,
@@ -25,16 +26,16 @@ public:
                 const Sample *sample,
                 RNG &rng,
                 Spectrum *transmittance,
-                MemoryArena &arena) const;
+                MemoryArena &arena)const{}
     
     Spectrum Transmittance(const Scene *scene,
                            const Renderer *,
                            const RayDifferential &ray,
                            const Sample *sample,
                            RNG &rng,
-                           MemoryArena &arena) const;
+                           MemoryArena &arena) const{}
     
-    void RequestSamples(Sampler *sampler, Sample *sample, const Scene *scene);
+    void RequestSamples(Sampler *sampler, Sample *sample, const Scene *scene){}
     
     void Preprocess(const Scene *scene, const Camera *camera, const Renderer *renderer);
     
@@ -62,7 +63,7 @@ public:
                            const Renderer *sr)
     : taskNum(tn), time(ti), mutex(m), integrator(in), progress(prog),
     abortTasks(at), nshot(ns), lightDistribution(distrib), scene(sc), renderer (sr),
-    PhotonBeams(vol){ }
+    PhotonBeams(vol){}
     
     void Run();
     
@@ -79,6 +80,26 @@ public:
     const Renderer *renderer;
 };
 
+class BBHAccel
+{
+public:
+    // VBVHAccel Public Methods
+    BBHAccel(vector<PhotonBeam> &PhotonBeams);
+    ~BBVHAccel();
+    
+    BBox WorldBound() const;
+    //bool CanIntersect() const { return true; }
+private:
+    // VBVHAccel Private Methods
+    VBVHBuildNode* recursiveBuild(MemoryArena &buildArena, VKdTree &volumemap,
+                                  uint32_t nodenum, uint32_t *totalNodes);
+    uint32_t flattenVBVHTree(VBVHBuildNode *node, uint32_t *offset);
+    
+    // VBVHAccel Private Data
+    uint32_t maxBeamsInNode;
+    vector<Reference<Primitive> > primitives;
+//    LinearVBVHNode *nodes;
+};
 
 
 PhotonBeamIntegrator *CreatePhotonBeamIntegrator(const ParamSet &params);
