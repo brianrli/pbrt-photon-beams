@@ -10,14 +10,22 @@
 
 //Photon Structs
 struct PhotonBeam;
+struct beamisect;
+
+//BBH Structs
+struct BBHBuildNode;
+
+// BBHAccel Forward Declarations
+struct BBHPrimitiveInfo;
+struct LinearBBHNode;
+class BBHAccel;
 
 // PhotonIntegrator Declarations
 class PhotonBeamIntegrator : public VolumeIntegrator {
 
 public:
     // PhotonIntegrator Public Methods
-    
-    PhotonBeamIntegrator(int nbeams);
+    PhotonBeamIntegrator(int nbeams, float ssize);
     ~PhotonBeamIntegrator(){}
     
     Spectrum Li(const Scene *scene,
@@ -26,16 +34,16 @@ public:
                 const Sample *sample,
                 RNG &rng,
                 Spectrum *transmittance,
-                MemoryArena &arena)const{}
+                MemoryArena &arena)const;
     
     Spectrum Transmittance(const Scene *scene,
                            const Renderer *,
                            const RayDifferential &ray,
                            const Sample *sample,
                            RNG &rng,
-                           MemoryArena &arena) const{}
+                           MemoryArena &arena) const;
     
-    void RequestSamples(Sampler *sampler, Sample *sample, const Scene *scene){}
+    void RequestSamples(Sampler *sampler, Sample *sample, const Scene *scene);
     
     void Preprocess(const Scene *scene, const Camera *camera, const Renderer *renderer);
     
@@ -46,6 +54,7 @@ private:
     // PhotonIntegrator Private Data
     uint32_t nPhotonBeamsWanted;
     int tauSampleOffset, scatterSampleOffset;
+    float stepSize;
     float blur; 
     
     // Declare sample parameters for light source sampling
@@ -53,6 +62,9 @@ private:
     BSDFSampleOffsets *bsdfSampleOffsets;
     BSDFSampleOffsets bsdfGatherSampleOffsets, indirGatherSampleOffsets;
     int nVolumePaths;
+    
+    //BBH Hierarchy
+    BBHAccel *BeamMap;
 };
 
 class PhotonBeamShootingTask : public Task {
@@ -78,29 +90,35 @@ public:
     const Distribution1D *lightDistribution;
     const Scene *scene;
     const Renderer *renderer;
+
 };
 
 class BBHAccel
 {
 public:
     // VBVHAccel Public Methods
-    BBHAccel(vector<PhotonBeam> &PhotonBeams);
-    ~BBVHAccel();
+    BBHAccel(const vector<PhotonBeam> &p, uint32_t mp);
+    ~BBHAccel();
+    
+    //Intersect
+    bool Intersect(const Ray &ray, vector<beamisect> &intersections) const;
     
     BBox WorldBound() const;
     //bool CanIntersect() const { return true; }
 private:
     // VBVHAccel Private Methods
-    VBVHBuildNode* recursiveBuild(MemoryArena &buildArena, VKdTree &volumemap,
-                                  uint32_t nodenum, uint32_t *totalNodes);
-    uint32_t flattenVBVHTree(VBVHBuildNode *node, uint32_t *offset);
+    BBHBuildNode *recursiveBuild(MemoryArena &buildArena,
+                                 vector<BBHPrimitiveInfo> &buildData, uint32_t start, uint32_t end,
+                                 uint32_t *totalNodes, vector<PhotonBeam> &orderedBeams);
+    uint32_t flattenBBHTree(BBHBuildNode *node, uint32_t *offset);
     
     // VBVHAccel Private Data
     uint32_t maxBeamsInNode;
-    vector<Reference<Primitive> > primitives;
-//    LinearVBVHNode *nodes;
+    vector<PhotonBeam> beams;
+    LinearBBHNode *nodes;
 };
 
+BBHAccel *CreateBBHAccelerator(const vector<PhotonBeam> &beams);
 
 PhotonBeamIntegrator *CreatePhotonBeamIntegrator(const ParamSet &params);
 

@@ -64,10 +64,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--ncores 1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output001.exr"
+            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output003.exr"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

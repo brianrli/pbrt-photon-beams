@@ -60,12 +60,12 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "252"
-         endingLineNumber = "252"
-         landmarkName = "PhotonBeamIntegrator::Preprocess(const Scene *scene, const Camera *camera, const Renderer *renderer)"
+         startingLineNumber = "427"
+         endingLineNumber = "427"
+         landmarkName = "BBHAccel::flattenBBHTree(BBHBuildNode *node, uint32_t *offset)"
          landmarkType = "5">
       </FileBreakpoint>
       <FileBreakpoint
@@ -73,12 +73,12 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433219668.472355"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "183"
-         endingLineNumber = "183"
-         landmarkName = "PhotonBeamShootingTask::Run()"
+         startingLineNumber = "683"
+         endingLineNumber = "683"
+         landmarkName = "PhotonBeamIntegrator::Li(const Scene *scene, const Renderer *renderer, const RayDifferential &amp;ray, const Sample *sample, RNG &amp;rng, Spectrum *transmittance, MemoryArena &amp;arena)"
          landmarkType = "5">
       </FileBreakpoint>
       <FileBreakpoint
@@ -86,12 +86,38 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "25"
-         endingLineNumber = "25"
-         landmarkName = "zmin(0)"
+         startingLineNumber = "680"
+         endingLineNumber = "680"
+         landmarkName = "PhotonBeamIntegrator::Li(const Scene *scene, const Renderer *renderer, const RayDifferential &amp;ray, const Sample *sample, RNG &amp;rng, Spectrum *transmittance, MemoryArena &amp;arena)"
+         landmarkType = "5">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433370853.102917"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "443"
+         endingLineNumber = "443"
+         landmarkName = "BBHAccel::Intersect(const Ray &amp;ray, vector&lt;beamisect&gt; &amp;intersections)"
+         landmarkType = "5">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433348875.96542"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "65"
+         endingLineNumber = "65"
+         landmarkName = "Intersect(const Ray &amp;r, beamisect &amp;isect)"
          landmarkType = "7">
       </FileBreakpoint>
       <FileBreakpoint
@@ -99,38 +125,12 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "26"
-         endingLineNumber = "26"
-         landmarkName = "zmin(0)"
-         landmarkType = "7">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "28"
-         endingLineNumber = "28"
-         landmarkName = "zmin(0)"
-         landmarkType = "7">
-      </FileBreakpoint>
-      <FileBreakpoint
-         shouldBeEnabled = "No"
-         ignoreCount = "0"
-         continueAfterRunningActions = "No"
-         filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
-         startingColumnNumber = "9223372036854775807"
-         endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "254"
-         endingLineNumber = "254"
-         landmarkName = "PhotonBeamIntegrator::Preprocess(const Scene *scene, const Camera *camera, const Renderer *renderer)"
+         startingLineNumber = "454"
+         endingLineNumber = "454"
+         landmarkName = "BBHAccel::Intersect(const Ray &amp;ray, vector&lt;beamisect&gt; &amp;intersections)"
          landmarkType = "5">
       </FileBreakpoint>
       <FileBreakpoint
@@ -138,12 +138,12 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433219668.472355"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "188"
-         endingLineNumber = "188"
-         landmarkName = "PhotonBeamShootingTask::Run()"
+         startingLineNumber = "456"
+         endingLineNumber = "456"
+         landmarkName = "BBHAccel::Intersect(const Ray &amp;ray, vector&lt;beamisect&gt; &amp;intersections)"
          landmarkType = "5">
       </FileBreakpoint>
       <FileBreakpoint
@@ -151,11 +151,24 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433220846.985994"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "113"
-         endingLineNumber = "113"
+         startingLineNumber = "461"
+         endingLineNumber = "461"
+         landmarkName = "BBHAccel::Intersect(const Ray &amp;ray, vector&lt;beamisect&gt; &amp;intersections)"
+         landmarkType = "5">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433370853.102917"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "513"
+         endingLineNumber = "513"
          landmarkName = "split_beam(vector&lt;PhotonBeam&gt; &amp;beam,PhotonBeam sb)"
          landmarkType = "7">
       </FileBreakpoint>
@@ -164,25 +177,64 @@
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433219661.296877"
+         timestampString = "433370853.102917"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "122"
-         endingLineNumber = "122"
+         startingLineNumber = "515"
+         endingLineNumber = "515"
          landmarkName = "split_beam(vector&lt;PhotonBeam&gt; &amp;beam,PhotonBeam sb)"
          landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433370853.102917"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "132"
+         endingLineNumber = "132"
+         landmarkName = "ObjectBound()"
+         landmarkType = "7">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433370836.724865"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "266"
+         endingLineNumber = "266"
+         landmarkName = "BBHAccel::BBHAccel(const vector&lt;PhotonBeam&gt;&amp;p, uint32_t mp)"
+         landmarkType = "5">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433370840.198534"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "265"
+         endingLineNumber = "265"
+         landmarkName = "BBHAccel::BBHAccel(const vector&lt;PhotonBeam&gt;&amp;p, uint32_t mp)"
+         landmarkType = "5">
       </FileBreakpoint>
       <FileBreakpoint
          shouldBeEnabled = "Yes"
          ignoreCount = "0"
          continueAfterRunningActions = "No"
          filePath = "integrators/photonbeam.cpp"
-         timestampString = "433221173.651933"
+         timestampString = "433371162.395539"
          startingColumnNumber = "9223372036854775807"
          endingColumnNumber = "9223372036854775807"
-         startingLineNumber = "266"
-         endingLineNumber = "266"
-         landmarkName = "PhotonBeamIntegrator::Preprocess(const Scene *scene, const Camera *camera, const Renderer *renderer)"
+         startingLineNumber = "679"
+         endingLineNumber = "679"
+         landmarkName = "PhotonBeamIntegrator::Li(const Scene *scene, const Renderer *renderer, const RayDifferential &amp;ray, const Sample *sample, RNG &amp;rng, Spectrum *transmittance, MemoryArena &amp;arena)"
          landmarkType = "5">
       </FileBreakpoint>
    </FileBreakpoints>
