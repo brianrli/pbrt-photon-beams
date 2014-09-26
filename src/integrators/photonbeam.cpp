@@ -16,9 +16,12 @@ struct beamisect{
     }
     
     Spectrum power;
+    Point ipoint;
+    Vector dir;
     float angle;
     float tcb; //photon beam distance
     float tbc; //ray distance
+    int beamid;
 };
 
 struct PhotonBeam {
@@ -27,8 +30,9 @@ struct PhotonBeam {
                const Point &en,
                const Spectrum &wt,//alpha
                const Vector &w, //direction
-               float radius)
-    : start(st), end(en),alpha(wt), ri(radius),zmin(0)
+               float radius,
+               int id)
+    : start(st), end(en),alpha(wt), ri(radius),zmin(0),beamid(id)
     {
         dir = Normalize(w);
         p = (st+en)/2.f;
@@ -49,6 +53,7 @@ struct PhotonBeam {
         end = beam.end;
         zmax = beam.zmax;
         alpha = beam.alpha;
+        beamid = beam.beamid;
 
         //midpoint
         p = (start+end)/2.f;
@@ -62,6 +67,7 @@ struct PhotonBeam {
     
     //computes intersect (bastardized cylinder code)
     bool Intersect(const Ray &r, beamisect &isect) const{
+        
         float phi;
         Point phit;
         // Transform _Ray_ to object space
@@ -88,13 +94,9 @@ struct PhotonBeam {
                 return false;
         } //thit+t0
         
-        float raydist = thit;
-        
+                
         // Compute cylinder hit point and $\phi$
         phit = ray(thit);
-        
-        //local height+total height
-        float beamdist = phit.z + zmin;
         
         phi = atan2f(phit.y, phit.x);
         if (phi < 0.) phi += 2.f*M_PI;
@@ -113,8 +115,18 @@ struct PhotonBeam {
                 return false;
         }
         
+        //distance down ray to intersect point
+        float raydist = thit;
+
+        //local height+total height
+        float beamdist = phit.z + zmin;
+
+        
+        //interactpoint
+        isect.ipoint = ObjectToWorld(phit);
+        
         //compute angle
-        Vector a = WorldToObject(dir);
+        Vector a = WorldToObject(r.d);
         Vector b = Vector(0,0,1);
         float angle = acosf(Dot(a,b)/(a.Length()+b.Length()));
         
@@ -123,6 +135,8 @@ struct PhotonBeam {
         isect.power = alpha;
         isect.tcb = beamdist;
         isect.tbc = raydist;
+        isect.dir = dir;
+        isect.beamid = beamid;
         return true;
     }
     
@@ -139,6 +153,8 @@ struct PhotonBeam {
     Transform ObjectToWorld, WorldToObject;
     float ri;
     //BBox bound;
+    
+    int beamid;
     
     /** Cylinder **/
     float phiMax =2.f*M_PI;
@@ -257,7 +273,6 @@ BBHAccel::BBHAccel(const vector<PhotonBeam>&p, uint32_t mp)
         return;
     }
     // Build BBH from _primitives_
-    
     // Initialize _buildData_ array for primitives
     vector<BBHPrimitiveInfo> buildData;
     buildData.reserve(beams.size());
@@ -537,6 +552,9 @@ void PhotonBeamShootingTask::Run() {
     //set finish conditions
     bool volumeDone = (integrator->nPhotonBeamsWanted == 0);
 
+    //unique id for each beam
+    int beamid = integrator->nPhotonBeamsWanted * taskNum;
+
     while (true) {
         const uint32_t blockSize = 500;
         for (uint32_t i = 0; i < blockSize; ++i) {
@@ -573,9 +591,16 @@ void PhotonBeamShootingTask::Run() {
                 //intersect with group
                 if (volume->IntersectP(photonRay, &vt0, &vt1))
                 {
+                    
+                    if (scene->Intersect(photonRay, &photonIsect)) {
+                        if(photonRay.maxt < vt1)
+                            vt1 = photonRay.maxt;
+                    }
+                    
                     Point start = photonRay(vt0);
                     Point end = photonRay(vt1);
-                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, 0.05f));
+                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, 0.01f,beamid));
+                    beamid++;
                 }
                 PBRT_PHOTON_MAP_FINISHED_RAY_PATH(&photonRay, &alpha);
             }
@@ -673,14 +698,46 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
     
     float nints = intersections.size();
     
-    float totalradius = 0;
+    Spectrum L = Spectrum(0.f);
+    Spectrum S;
     
-    for (auto i = intersections.begin(); i != intersections.end(); i++) {
-        return Spectrum(30.f);
-        int stop = 1;
+    //remove duplicates
+    if(nints>0){
+        for(int i = 0; i<intersections.size(); i++){
+            for (int j = i+1; j< intersections.size(); j++){
+                if (intersections[i].beamid == intersections[j].beamid)
+                    intersections.erase(intersections.begin()+j-1);
+            }
+        }
     }
     
-    return Spectrum(0.f);
+    for (auto i = intersections.begin(); i != intersections.end(); i++) {
+        
+        //extinction coefficient
+        Spectrum sigt = vr->sigma_t(i->ipoint,ray.d,ray.time);
+        
+        //will always be the same anyhow
+        S = vr->sigma_s(i->ipoint,ray.d,ray.time);
+        
+        float sinb = sinf(i->angle);
+        Spectrum P = vr->p(i->ipoint,i->dir,w,1e-4f);
+        Spectrum power = i->power;
+        
+        float a = i->tcb;
+        float c = i->tbc;
+        Spectrum term1 = Exp(-sigt * i->tcb);
+        Spectrum term2 = Exp(-sigt * i->tbc);
+        
+        Spectrum tester = P*power*term1*term2;
+        
+        L+=((P*power*term1*term2)/sinf(i->angle));
+    }
+    
+    if(nints>0){
+        L *= (S / (ray.maxt-ray.mint));
+    }
+    
+    return L;
 }
 
 Spectrum PhotonBeamIntegrator::Transmittance(const Scene *scene,
