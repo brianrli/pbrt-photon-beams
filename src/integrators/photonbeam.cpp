@@ -21,6 +21,8 @@ struct beamisect{
     float angle;
     float tcb; //photon beam distance
     float tbc; //ray distance
+    float zmin;
+    float zmax;
     int beamid;
 };
 
@@ -67,6 +69,10 @@ struct PhotonBeam {
     
     //computes intersect (bastardized cylinder code)
     bool Intersect(const Ray &r, beamisect &isect) const{
+        
+        if(zmin < 2){
+            int sweg = 2;
+        }
         
         float phi;
         Point phit;
@@ -119,10 +125,8 @@ struct PhotonBeam {
         float raydist = thit;
 
         //local height+total height
-        float beamdist = phit.z + zmin;
-
-        
-        //interactpoint
+        float beamdist = phit.z;
+        //
         isect.ipoint = ObjectToWorld(phit);
         
         //compute angle
@@ -137,6 +141,8 @@ struct PhotonBeam {
         isect.tbc = raydist;
         isect.dir = dir;
         isect.beamid = beamid;
+        isect.zmin = zmin;
+        isect.zmax = zmax;
         return true;
     }
     
@@ -261,7 +267,6 @@ static inline bool IntersectP(const BBox &bounds, const Ray &ray,
 }
 
 
-
 // BBHAccel Method Definitions
 BBHAccel::BBHAccel(const vector<PhotonBeam>&p, uint32_t mp)
 {
@@ -294,8 +299,10 @@ BBHAccel::BBHAccel(const vector<PhotonBeam>&p, uint32_t mp)
     
     // Compute representation of depth-first traversal of BBH tree
     nodes = AllocAligned<LinearBBHNode>(totalNodes);
+
     for (uint32_t i = 0; i < totalNodes; ++i)
         new (&nodes[i]) LinearBBHNode;
+    
     uint32_t offset = 0;
     flattenBBHTree(root, &offset);
     Assert(offset == totalNodes);
@@ -464,13 +471,30 @@ bool BBHAccel::Intersect(const Ray &ray, vector<beamisect> &intersections) const
     uint32_t todo[64];
     while (true) {
         const LinearBBHNode *node = &nodes[nodeNum];
+
+        if(node->nPrimitives > 0){
+            PhotonBeam example = beams[node->primitivesOffset];
+            
+            if (beams[node->primitivesOffset].zmin < 1){
+                int fuck = 69;
+            }
+        }
         // Check ray against BVH node
+        
         if (::IntersectP(node->bounds, ray, invDir, dirIsNeg)) {
+            
+            if(node->nPrimitives > 0){
+                if (beams[node->primitivesOffset].zmin < 2){
+                    int fuck = 69;
+                }
+            }
+            
             if (node->nPrimitives > 0) {
                 // Intersect ray with primitives in leaf BVH node
                 for (uint32_t i = 0; i < node->nPrimitives; ++i)
                 {
                     beamisect isect;
+
                     if (beams[node->primitivesOffset+i].Intersect(ray,isect))
                     {
                         intersections.push_back(isect);
@@ -599,7 +623,7 @@ void PhotonBeamShootingTask::Run() {
                     
                     Point start = photonRay(vt0);
                     Point end = photonRay(vt1);
-                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, 0.01f,beamid));
+                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, radius, beamid));
                     beamid++;
                 }
                 PBRT_PHOTON_MAP_FINISHED_RAY_PATH(&photonRay, &alpha);
@@ -662,8 +686,7 @@ void PhotonBeamIntegrator::Preprocess(const Scene *scene,
     vector<Task *> PhotonBeamShootingTasks;
     int nTasks = NumSystemCores();
     for (int i = 0; i < nTasks; ++i)
-        PhotonBeamShootingTasks.push_back(new PhotonBeamShootingTask(i, camera ? camera->shutterOpen : 0.f, *mutex, this, progress, abortTasks,
-                                                                    nshot, PhotonBeams, lightDistribution, scene, renderer));
+        PhotonBeamShootingTasks.push_back(new PhotonBeamShootingTask(i, camera ? camera->shutterOpen : 0.f, *mutex, this, progress, abortTasks,nshot, PhotonBeams, lightDistribution, scene, renderer,radius));
     
     EnqueueTasks(PhotonBeamShootingTasks);
     WaitForAllTasks();
@@ -721,16 +744,22 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
         
         float sinb = sinf(i->angle);
         Spectrum P = vr->p(i->ipoint,i->dir,w,1e-4f);
+        
+        //scale down power
+//        Spectrum power = (i->power) * i->tcb * S * Exp(-sigt*(i->tcb));
         Spectrum power = i->power;
         
         float a = i->tcb;
         float c = i->tbc;
+
+//        sigt = 0.8f; output 17
+        sigt = 0.9f; //output 18
         Spectrum term1 = Exp(-sigt * i->tcb);
         Spectrum term2 = Exp(-sigt * i->tbc);
         
         Spectrum tester = P*power*term1*term2;
         
-        L+=((P*power*term1*term2)/sinf(i->angle));
+        L+=((P*power*term1*term2)/sinb);
     }
     
     if(nints>0){
@@ -767,15 +796,17 @@ void PhotonBeamIntegrator::RequestSamples(Sampler *sampler, Sample *sample, cons
 	scatterSampleOffset = sample->Add1D(1);
 }
 
-PhotonBeamIntegrator::PhotonBeamIntegrator(int nbeams,float ssize)
+PhotonBeamIntegrator::PhotonBeamIntegrator(int nbeams,float ssize,float beamradius)
 {
     stepSize = ssize;
     nPhotonBeamsWanted = nbeams;
+    radius = beamradius;
 }
 
 
 PhotonBeamIntegrator *CreatePhotonBeamIntegrator(const ParamSet &params) {
     int nbeams = params.FindOneInt("photonbeams", 20000);
     float stepSize  = params.FindOneFloat("stepsize", 4.f);
-    return new PhotonBeamIntegrator(nbeams,stepSize);
+    float beamRadius  = params.FindOneFloat("radius", 0.001f);
+    return new PhotonBeamIntegrator(nbeams,stepSize,beamRadius);
 }

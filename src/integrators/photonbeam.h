@@ -25,7 +25,7 @@ class PhotonBeamIntegrator : public VolumeIntegrator {
 
 public:
     // PhotonIntegrator Public Methods
-    PhotonBeamIntegrator(int nbeams, float ssize);
+    PhotonBeamIntegrator(int nbeams, float ssize, float beamradius);
     ~PhotonBeamIntegrator(){}
     
     Spectrum Li(const Scene *scene,
@@ -55,7 +55,8 @@ private:
     uint32_t nPhotonBeamsWanted;
     int tauSampleOffset, scatterSampleOffset;
     float stepSize;
-    float blur; 
+    float blur;
+    float radius;
     
     // Declare sample parameters for light source sampling
     LightSampleOffsets *lightSampleOffsets;
@@ -72,10 +73,10 @@ public:
     PhotonBeamShootingTask(int tn, float ti, Mutex &m, PhotonBeamIntegrator *in,
                            ProgressReporter &prog, bool &at, uint32_t &ns,
                            vector<PhotonBeam> &vol, Distribution1D *distrib, const Scene *sc,
-                           const Renderer *sr)
+                           const Renderer *sr, float ri)
     : taskNum(tn), time(ti), mutex(m), integrator(in), progress(prog),
     abortTasks(at), nshot(ns), lightDistribution(distrib), scene(sc), renderer (sr),
-    PhotonBeams(vol){}
+    PhotonBeams(vol),radius(ri){}
     
     void Run();
     
@@ -90,6 +91,8 @@ public:
     const Distribution1D *lightDistribution;
     const Scene *scene;
     const Renderer *renderer;
+    
+    float radius;
 
 };
 
