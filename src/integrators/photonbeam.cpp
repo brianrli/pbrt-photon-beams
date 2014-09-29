@@ -471,30 +471,15 @@ bool BBHAccel::Intersect(const Ray &ray, vector<beamisect> &intersections) const
     uint32_t todo[64];
     while (true) {
         const LinearBBHNode *node = &nodes[nodeNum];
-
-        if(node->nPrimitives > 0){
-            PhotonBeam example = beams[node->primitivesOffset];
-            
-            if (beams[node->primitivesOffset].zmin < 1){
-                int fuck = 69;
-            }
-        }
         // Check ray against BVH node
         
         if (::IntersectP(node->bounds, ray, invDir, dirIsNeg)) {
-            
-            if(node->nPrimitives > 0){
-                if (beams[node->primitivesOffset].zmin < 2){
-                    int fuck = 69;
-                }
-            }
             
             if (node->nPrimitives > 0) {
                 // Intersect ray with primitives in leaf BVH node
                 for (uint32_t i = 0; i < node->nPrimitives; ++i)
                 {
                     beamisect isect;
-
                     if (beams[node->primitivesOffset+i].Intersect(ray,isect))
                     {
                         intersections.push_back(isect);
@@ -557,8 +542,38 @@ void split_beam(vector<PhotonBeam> &beam,PhotonBeam sb)
 }
 
 
+
+
 inline bool unsuccessful(uint32_t needed, uint32_t found, uint32_t shot) {
     return (found < needed && (found == 0 || found < shot / 1024));
+}
+
+//use Henyey-Greenstein function
+Vector VSampleHG(const Vector &w, float g,
+                 float u1, float u2) {
+	float costheta;
+	if (fabsf(g) < 1e-3)
+		costheta = 1.f - 2.f * u1;
+	else
+		costheta = -1.f / (2.f * g) *
+        (1.f + g*g - ((1.f-g*g) * (1.f-g+2.f*g*u1)));
+	float sintheta = sqrtf(max(0.f, 1.f-costheta*costheta));
+	float phi = 2.f * M_PI * u2;
+	Vector v1, v2;
+	CoordinateSystem(w, &v1, &v2);
+	return SphericalDirection(sintheta, costheta,
+                              phi, v1, v2, w);
+}
+
+float VPhaseHG(const Vector &w, const Vector &wp, float g) {
+    float costheta = Dot(w, wp);
+    return 1.f / (4.f * M_PI) *
+    (1.f - g*g) / powf(1.f + g*g - 2.f * g * costheta, 1.5f);
+}
+
+float SampleScattering(const Vector &wi, float u1, float u2, Vector &wo){
+    wo = VSampleHG(-wi, .9995f, u1, u2);
+    return VPhaseHG(-wi, wo, .9f);
 }
 
 void PhotonBeamShootingTask::Run() {
@@ -610,22 +625,60 @@ void PhotonBeamShootingTask::Run() {
 
                 Intersection photonIsect;
                 float vt0, vt1;
+                
                 //Photon Shooting & Depositing
+                int maxdepth = 3;
+                int depth = 0;
+                bool inVolume = true;
 
                 //intersect with group
-                if (volume->IntersectP(photonRay, &vt0, &vt1))
-                {
-                    
-                    if (scene->Intersect(photonRay, &photonIsect)) {
-                        if(photonRay.maxt < vt1)
-                            vt1 = photonRay.maxt;
+                while (inVolume){
+                    if (volume->IntersectP(photonRay, &vt0, &vt1))
+                    {
+                        if (scene->Intersect(photonRay, &photonIsect)) {
+                            if(photonRay.maxt < vt1)
+                                vt1 = photonRay.maxt;
+                        }
+                        
+                        //deposit photonbeam
+                        Point start = photonRay(vt0);
+                        Point end = photonRay(vt1);
+//                        Vector one = Normalize(end-start);
+//                        Vector two = Normalize(photonRay.d);
+                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), radius, beamid));
+                        
+                        //multiple scattering
+                        float ts = -logf(1-rng.RandomFloat())/0.9f;
+//                        float whatthefuck = 1.f/(depth+0.5f);
+//                        ts += 1.f/(depth+1.f);
+                        if(ts > vt0 && ts < vt1){
+//                            alpha = alpha * ts * volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time) *
+//                            Exp(-volume->sigma_t(photonRay(ts), photonRay.d, photonRay.time) * ts);
+
+                            alpha = alpha * (ts-vt0) * volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time) *
+                            Exp(-Spectrum(1.3) * ts);
+                            
+                            Vector newdirection;
+                            float pdf = SampleScattering(photonRay.d, rng.RandomFloat(), rng.RandomFloat(),newdirection);
+                            photonRay = RayDifferential(photonRay(ts),newdirection,0.f);
+                            
+                            alpha *= (2/3.f);
+                            depth++;
+                        }
+                        else
+                            break;
+                        
+                        //maximum depth check
+                        if(depth >= maxdepth)
+                            break;
                     }
-                    
-                    Point start = photonRay(vt0);
-                    Point end = photonRay(vt1);
-                    split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, end-start, radius, beamid));
-                    beamid++;
+                    else
+                        break;
                 }
+                
+                //avoid intersections of same beam
+                beamid++;
+                
                 PBRT_PHOTON_MAP_FINISHED_RAY_PATH(&photonRay, &alpha);
             }
         
@@ -749,8 +802,8 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
 //        Spectrum power = (i->power) * i->tcb * S * Exp(-sigt*(i->tcb));
         Spectrum power = i->power;
         
-        float a = i->tcb;
-        float c = i->tbc;
+//        float a = i->tcb;
+//        float c = i->tbc;
 
 //        sigt = 0.8f; output 17
         sigt = 0.9f; //output 18
@@ -807,6 +860,6 @@ PhotonBeamIntegrator::PhotonBeamIntegrator(int nbeams,float ssize,float beamradi
 PhotonBeamIntegrator *CreatePhotonBeamIntegrator(const ParamSet &params) {
     int nbeams = params.FindOneInt("photonbeams", 20000);
     float stepSize  = params.FindOneFloat("stepsize", 4.f);
-    float beamRadius  = params.FindOneFloat("radius", 0.001f);
+    float beamRadius  = params.FindOneFloat("beamradius", 0.001f);
     return new PhotonBeamIntegrator(nbeams,stepSize,beamRadius);
 }
