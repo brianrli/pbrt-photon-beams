@@ -45,6 +45,32 @@ struct PhotonBeam {
         zmax = (start-end).Length();
     }
     
+    PhotonBeam(const Point &st,
+               const Point &en,
+               const Spectrum &wt,//alpha
+               const Vector &w, //direction
+               float sa,
+               int id,
+               bool flag)
+    : start(en), end(st),alpha(wt), zmin(0),beamid(id) //trade start and end
+    {
+        dir = Normalize(-w);
+        p = (st+en)/2.f;
+        
+        //necessary transformations
+        WorldToObject = LookAt(start, end, Cross(end-start,Vector(1,0,0)));
+        ObjectToWorld = Inverse(WorldToObject);
+        zmax = (start-end).Length();
+        
+        Point a = WorldToObject(start);
+        Point b = WorldToObject(end);
+        
+        cone_height = zmax-zmin;
+        cone_radius = cone_height * tanf(sa/2.f);
+        
+        int constantinople = 21;
+    }
+    
     PhotonBeam(const Point &st,//need
                float zmi, //need
                PhotonBeam &beam)
@@ -56,24 +82,32 @@ struct PhotonBeam {
         zmax = beam.zmax;
         alpha = beam.alpha;
         beamid = beam.beamid;
-
+        
+        cone_radius = beam.cone_radius;
+        cone_height = beam.cone_height;
+        
         //midpoint
         p = (start+end)/2.f;
         
         //new transformations
         WorldToObject = beam.WorldToObject;
         ObjectToWorld = beam.ObjectToWorld;
-//        WorldToObject = LookAt(start, end, Cross(end-start,Vector(1,0,0)));
-//        ObjectToWorld = Inverse(WorldToObject);
+        
+        Point a = WorldToObject(start);
+        Point b = WorldToObject(end);
+        
+        Point a1 = WorldToObject(beam.start);
+        Point b2 = WorldToObject(beam.end);
+        
+        BBox example = ObjectBound();
+        BBox example1 = beam.ObjectBound();
+        
+        int constantinople = 21;
     }
     
     //computes intersect (bastardized cylinder code)
     bool Intersect(const Ray &r, beamisect &isect) const{
-        
-        if(zmin < 2){
-            int sweg = 2;
-        }
-        
+    
         float phi;
         Point phit;
         // Transform _Ray_ to object space
@@ -146,9 +180,90 @@ struct PhotonBeam {
         return true;
     }
     
+    bool Intersect2(const Ray &r, beamisect &isect) const {
+        float phi;
+        Point phit;
+        // Transform _Ray_ to object space
+        Ray ray;
+        WorldToObject(r, &ray);
+        
+        float radius = cone_radius;
+        float height = cone_height;
+        
+        // Compute quadratic cone coefficients
+        float k = radius / height;
+        k = k*k;
+        float A = ray.d.x * ray.d.x + ray.d.y * ray.d.y -
+        k * ray.d.z * ray.d.z;
+        float B = 2 * (ray.d.x * ray.o.x + ray.d.y * ray.o.y -
+                       k * ray.d.z * (ray.o.z-height) );
+        float C = ray.o.x * ray.o.x + ray.o.y * ray.o.y -
+        k * (ray.o.z -height) * (ray.o.z-height);
+        
+        // Solve quadratic equation for _t_ values
+        float t0, t1;
+        if (!Quadratic(A, B, C, &t0, &t1))
+            return false;
+        
+        // Compute intersection distance along ray
+        if (t0 > ray.maxt || t1 < ray.mint)
+            return false;
+        float thit = t0;
+        if (t0 < ray.mint) {
+            thit = t1;
+            if (thit > ray.maxt) return false;
+        }
+        
+        // Compute cone inverse mapping
+        phit = ray(thit);
+        phi = atan2f(phit.y, phit.x);
+        if (phi < 0.) phi += 2.f*M_PI;
+        
+        // Test cone intersection against clipping parameters
+        if (phit.z < zmin || phit.z > zmax || phi > phiMax) {
+            if (thit == t1) return false;
+            thit = t1;
+            if (t1 > ray.maxt) return false;
+            // Compute cone inverse mapping
+            phit = ray(thit);
+            phi = atan2f(phit.y, phit.x);
+            if (phi < 0.) phi += 2.f*M_PI;
+            if (phit.z < zmin || phit.z > zmax || phi > phiMax)
+                return false;
+        }
+        
+        //distance down ray to intersect point
+        float raydist = thit;
+        
+        //local height+total height
+        float beamdist = phit.z;
+        //
+        isect.ipoint = ObjectToWorld(phit);
+        
+        //compute angle
+        Vector a = WorldToObject(r.d);
+        Vector b = Vector(0,0,1);
+        float angle = acosf(Dot(a,b)/(a.Length()+b.Length()));
+        
+        //angle, distance, power
+        isect.angle = angle;
+        isect.power = alpha;
+        isect.tcb = beamdist;
+        isect.tbc = raydist;
+        isect.dir = dir;
+        isect.beamid = beamid;
+        isect.zmin = zmin;
+        isect.zmax = zmax;
+        
+        return true;
+    }
+
+    
     BBox ObjectBound() const {
-        Point p1 = Point(-ri, -ri, zmin);
-        Point p2 = Point( ri,  ri, zmax);
+        Point p1 = Point(-cone_radius, -cone_radius, zmin);
+        Point p2 = Point( cone_radius,  cone_radius, zmax);
+//        BBox lovestruck = BBox(p1, p2);
+//        BBox lovesick = ObjectToWorld(BBox(p1, p2));
         return ObjectToWorld(BBox(p1, p2));
     }
     
@@ -165,6 +280,10 @@ struct PhotonBeam {
     /** Cylinder **/
     float phiMax =2.f*M_PI;
     float zmin, zmax;
+    
+    /** Cone **/
+    float cone_radius;
+    float cone_height;
 };
 
 // BBHAccel Local Declarations
@@ -480,7 +599,7 @@ bool BBHAccel::Intersect(const Ray &ray, vector<beamisect> &intersections) const
                 for (uint32_t i = 0; i < node->nPrimitives; ++i)
                 {
                     beamisect isect;
-                    if (beams[node->primitivesOffset+i].Intersect(ray,isect))
+                    if (beams[node->primitivesOffset+i].Intersect2(ray,isect))
                     {
                         intersections.push_back(isect);
                         hit = true;
@@ -524,6 +643,7 @@ BBHAccel *CreateBBHAccelerator(const vector<PhotonBeam> &beams)
 void split_beam(vector<PhotonBeam> &beam,PhotonBeam sb)
 {
     //subbeam has desired height
+//    if(abs(sb.zmax - sb.zmin) < 1.f){
     if(abs(sb.zmax - sb.zmin) < 1.f){
         beam.push_back(sb);
     }
@@ -535,7 +655,10 @@ void split_beam(vector<PhotonBeam> &beam,PhotonBeam sb)
         PhotonBeam newbeam = PhotonBeam(split,sb.zmin+split_point,sb);
         sb.end = split;
         sb.zmax = sb.zmin+split_point; //wrong
-                
+        
+        BBox example = sb.ObjectBound();
+        BBox example1 = newbeam.ObjectBound();
+        
         split_beam(beam,sb);
         split_beam(beam,newbeam);
     }
@@ -595,7 +718,8 @@ void PhotonBeamShootingTask::Run() {
     int beamid = integrator->nPhotonBeamsWanted * taskNum;
 
     while (true) {
-        const uint32_t blockSize = 500;
+//        const uint32_t blockSize = 500;
+        const uint32_t blockSize = 25;
         for (uint32_t i = 0; i < blockSize; ++i) {
             
             float u[6];
@@ -617,6 +741,12 @@ void PhotonBeamShootingTask::Run() {
                                           time, &photonRay, &Nl, &pdf);
             if (pdf == 0.f || Le.IsBlack()) continue;
             Spectrum alpha = (AbsDot(Nl, photonRay.d) * Le) / (pdf * lightPdf); //initial
+            float sa = 1/(pdf*integrator->nPhotonBeamsWanted);
+//            if(pdf > 10.9)
+//            {
+//                int swaaaaaaaaggggg = 69696969;
+//            }
+            float aa = 2 * acosf(1 - sa/(2*M_PI));
 
             if (!alpha.IsBlack()) {
 
@@ -645,11 +775,14 @@ void PhotonBeamShootingTask::Run() {
                         Point end = photonRay(vt1);
 //                        Vector one = Normalize(end-start);
 //                        Vector two = Normalize(photonRay.d);
-                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), radius, beamid));
+//                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), radius, beamid));
+                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), aa, beamid,true));
                         
                         //multiple scattering
-                        float ts = -logf(1-rng.RandomFloat())/0.9f;
-//                        float whatthefuck = 1.f/(depth+0.5f);
+//                        float ts = -logf(1-rng.RandomFloat())/0.9f;
+                        
+                        //deactivate multiple scattering
+                        float ts = 99999999999.f;
 //                        ts += 1.f/(depth+1.f);
                         if(ts > vt0 && ts < vt1){
 //                            alpha = alpha * ts * volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time) *
@@ -708,6 +841,7 @@ void PhotonBeamShootingTask::Run() {
                 for (uint32_t i = 0; i < localPhotonBeams.size(); ++i)
                     PhotonBeams.push_back(localPhotonBeams[i]);
                 localPhotonBeams.erase(localPhotonBeams.begin(), localPhotonBeams.end());
+                //based on how many beams
                 if (PhotonBeams.size() >= integrator->nPhotonBeamsWanted)
                     volumeDone = true;
             }
@@ -806,7 +940,7 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
 //        float c = i->tbc;
 
 //        sigt = 0.8f; output 17
-        sigt = 0.9f; //output 18
+//        sigt = 0.9f; //output 18
         Spectrum term1 = Exp(-sigt * i->tcb);
         Spectrum term2 = Exp(-sigt * i->tbc);
         

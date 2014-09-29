@@ -67,7 +67,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output046.exr"
+            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output056.exr"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

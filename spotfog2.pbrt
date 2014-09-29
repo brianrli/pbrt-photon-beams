@@ -16,23 +16,23 @@ Camera "perspective" "float fov" [70]
 
 SurfaceIntegrator "directlighting"
 VolumeIntegrator "photonbeam" 
-"integer photonbeams"     [2000] 
+"integer photonbeams"     [5000] 
 "float beamradius" [0.01] 
 
 WorldBegin
 Translate -1 -1 3
 
 Volume "homogeneous"
-	"color sigma_a" [.3 .3 .3 ]
+	"color sigma_a" [.05 .05 .05 ]
 	#"color sigma_a" [.1 .1 .1 ] #output 9
-	#"color sigma_s" [.1 .1 .1]
+	"color sigma_s" [.1 .1 .1]
 	#"color sigma_s" [.5 .5 .5] #output 11
-	"color sigma_s" [.6 .6 .6]
+	#"color sigma_s" [.6 .6 .6]
 	"point p0" [ -10 0 -5 ] "point p1" [ 5 5 5]
 
 AttributeBegin
 LightSource "spot" "point from" [-3 6 -2 ] "point to" [0 2 0 ]
-	"color I" [2500 2500 2500 ] "float coneangle" [10]
+	"color I" [2500 2500 2500 ] "float coneangle" [16]
 AttributeEnd
 
 #original coneangle 16
