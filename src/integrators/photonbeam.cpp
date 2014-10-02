@@ -23,28 +23,34 @@ struct beamisect{
     float tbc; //ray distance
     float zmin;
     float zmax;
+    float ri;
     int beamid;
+    
+    bool dup;
 };
 
 struct PhotonBeam {
-    //constructor
+    
+    //cylinder
     PhotonBeam(const Point &st,
                const Point &en,
                const Spectrum &wt,//alpha
                const Vector &w, //direction
                float radius,
                int id)
-    : start(st), end(en),alpha(wt), ri(radius),zmin(0),beamid(id)
+    : start(st), end(en),alpha(wt), ri(radius),zmin(0),beamid(id),cone_radius(0),cone_height(0)
     {
         dir = Normalize(w);
-        p = (st+en)/2.f;
         
         //necessary transformations
         WorldToObject = LookAt(st, end, Cross(end-start,Vector(1,0,0)));
         ObjectToWorld = Inverse(WorldToObject);
         zmax = (start-end).Length();
+        
+        scattered = true;
     }
     
+    //cone
     PhotonBeam(const Point &st,
                const Point &en,
                const Spectrum &wt,//alpha
@@ -55,22 +61,19 @@ struct PhotonBeam {
     : start(en), end(st),alpha(wt), zmin(0),beamid(id) //trade start and end
     {
         dir = Normalize(-w);
-        p = (st+en)/2.f;
         
         //necessary transformations
         WorldToObject = LookAt(start, end, Cross(end-start,Vector(1,0,0)));
         ObjectToWorld = Inverse(WorldToObject);
         zmax = (start-end).Length();
-        
-        Point a = WorldToObject(start);
-        Point b = WorldToObject(end);
-        
+                
         cone_height = zmax-zmin;
         cone_radius = cone_height * tanf(sa/2.f);
         
-        int constantinople = 21;
+        scattered = false;
     }
     
+    //split constructor
     PhotonBeam(const Point &st,//need
                float zmi, //need
                PhotonBeam &beam)
@@ -86,98 +89,12 @@ struct PhotonBeam {
         cone_radius = beam.cone_radius;
         cone_height = beam.cone_height;
         
-        //midpoint
-        p = (start+end)/2.f;
-        
         //new transformations
         WorldToObject = beam.WorldToObject;
         ObjectToWorld = beam.ObjectToWorld;
         
-        Point a = WorldToObject(start);
-        Point b = WorldToObject(end);
-        
-        Point a1 = WorldToObject(beam.start);
-        Point b2 = WorldToObject(beam.end);
-        
-        BBox example = ObjectBound();
-        BBox example1 = beam.ObjectBound();
-        
-        int constantinople = 21;
-    }
-    
-    //computes intersect (bastardized cylinder code)
-    bool Intersect(const Ray &r, beamisect &isect) const{
-    
-        float phi;
-        Point phit;
-        // Transform _Ray_ to object space
-        Ray ray;
-        WorldToObject(r, &ray);
-        
-        // Compute quadratic cylinder coefficients
-        float A = ray.d.x*ray.d.x + ray.d.y*ray.d.y;
-        float B = 2 * (ray.d.x*ray.o.x + ray.d.y*ray.o.y);
-        float C = ray.o.x*ray.o.x + ray.o.y*ray.o.y - ri*ri;
-        float t0, t1;
-        
-        // Solve quadratic equation for _t_ values
-        if (!Quadratic(A, B, C, &t0, &t1))
-            return false;
-        
-        // Compute intersection distance along ray
-        if (t0 > ray.maxt || t1 < ray.mint)
-            return false;
-        float thit = t0;
-        if (t0 < ray.mint) {
-            thit = t1;
-            if (thit > ray.maxt)
-                return false;
-        } //thit+t0
-        
-                
-        // Compute cylinder hit point and $\phi$
-        phit = ray(thit);
-        
-        phi = atan2f(phit.y, phit.x);
-        if (phi < 0.) phi += 2.f*M_PI;
-        
-        // Test cylinder intersection against clipping parameters
-        if (phit.z < zmin || phit.z > zmax || phi > phiMax) {
-            if (thit == t1) return false;
-            thit = t1;
-            if (t1 > ray.maxt) return false;
-            
-            // Compute cylinder hit point and $\phi$
-            phit = ray(thit);
-            phi = atan2f(phit.y, phit.x);
-            if (phi < 0.) phi += 2.f*M_PI;
-            if (phit.z < zmin || phit.z > zmax || phi > phiMax)
-                return false;
-        }
-        
-        //distance down ray to intersect point
-        float raydist = thit;
-
-        //local height+total height
-        float beamdist = phit.z;
-        //
-        isect.ipoint = ObjectToWorld(phit);
-        
-        //compute angle
-        Vector a = WorldToObject(r.d);
-        Vector b = Vector(0,0,1);
-        float angle = acosf(Dot(a,b)/(a.Length()+b.Length()));
-        
-        //angle, distance, power
-        isect.angle = angle;
-        isect.power = alpha;
-        isect.tcb = beamdist;
-        isect.tbc = raydist;
-        isect.dir = dir;
-        isect.beamid = beamid;
-        isect.zmin = zmin;
-        isect.zmax = zmax;
-        return true;
+        //scattered beam?
+        scattered = beam.scattered;
     }
     
     bool Intersect2(const Ray &r, beamisect &isect) const {
@@ -190,18 +107,27 @@ struct PhotonBeam {
         float radius = cone_radius;
         float height = cone_height;
         
-        // Compute quadratic cone coefficients
-        float k = radius / height;
-        k = k*k;
-        float A = ray.d.x * ray.d.x + ray.d.y * ray.d.y -
-        k * ray.d.z * ray.d.z;
-        float B = 2 * (ray.d.x * ray.o.x + ray.d.y * ray.o.y -
-                       k * ray.d.z * (ray.o.z-height) );
-        float C = ray.o.x * ray.o.x + ray.o.y * ray.o.y -
-        k * (ray.o.z -height) * (ray.o.z-height);
+        
+        float A, B, C, t0, t1;
+        if(!scattered){
+            // Compute quadratic cone coefficients
+            float k = radius / height;
+            k = k*k;
+            A = ray.d.x * ray.d.x + ray.d.y * ray.d.y -
+                k * ray.d.z * ray.d.z;
+            B = 2 * (ray.d.x * ray.o.x + ray.d.y * ray.o.y -
+                           k * ray.d.z * (ray.o.z-height) );
+            C = ray.o.x * ray.o.x + ray.o.y * ray.o.y -
+            k * (ray.o.z -height) * (ray.o.z-height);
+        }
+        else{
+            // Compute quadratic cylinder coefficients
+            A = ray.d.x*ray.d.x + ray.d.y*ray.d.y;
+            B = 2 * (ray.d.x*ray.o.x + ray.d.y*ray.o.y);
+            C = ray.o.x*ray.o.x + ray.o.y*ray.o.y - ri*ri;
+        }
         
         // Solve quadratic equation for _t_ values
-        float t0, t1;
         if (!Quadratic(A, B, C, &t0, &t1))
             return false;
         
@@ -248,33 +174,49 @@ struct PhotonBeam {
         //angle, distance, power
         isect.angle = angle;
         isect.power = alpha;
-        isect.tcb = beamdist;
+        
+        if(!scattered)
+            isect.tcb = cone_height - beamdist;
+        else
+            isect.tcb = beamdist;
+        
+        if(!scattered){
+            isect.ri = sqrtf(powf(phit.y,2) + powf(phit.x,2));
+        }
+        else
+            isect.ri = ri;
+        
         isect.tbc = raydist;
         isect.dir = dir;
         isect.beamid = beamid;
         isect.zmin = zmin;
         isect.zmax = zmax;
-        
+        isect.dup = false;
         return true;
     }
 
     
     BBox ObjectBound() const {
-        Point p1 = Point(-cone_radius, -cone_radius, zmin);
-        Point p2 = Point( cone_radius,  cone_radius, zmax);
-//        BBox lovestruck = BBox(p1, p2);
-//        BBox lovesick = ObjectToWorld(BBox(p1, p2));
+        Point p1;
+        Point p2;
+        if(!scattered){
+            p1 = Point(-cone_radius, -cone_radius, zmin);
+            p2 = Point( cone_radius,  cone_radius, zmax);
+        }
+        else{
+            p1 = Point(-ri, -ri, zmin);
+            p2 = Point( ri,  ri, zmax);
+        }
+
         return ObjectToWorld(BBox(p1, p2));
     }
     
     /** Members **/
-    Point start,end,p;
+    Point start,end;
     Spectrum alpha;
     Vector dir;
     Transform ObjectToWorld, WorldToObject;
     float ri;
-    //BBox bound;
-    
     int beamid;
     
     /** Cylinder **/
@@ -282,6 +224,7 @@ struct PhotonBeam {
     float zmin, zmax;
     
     /** Cone **/
+    bool scattered;
     float cone_radius;
     float cone_height;
 };
@@ -656,15 +599,10 @@ void split_beam(vector<PhotonBeam> &beam,PhotonBeam sb)
         sb.end = split;
         sb.zmax = sb.zmin+split_point; //wrong
         
-        BBox example = sb.ObjectBound();
-        BBox example1 = newbeam.ObjectBound();
-        
         split_beam(beam,sb);
         split_beam(beam,newbeam);
     }
 }
-
-
 
 
 inline bool unsuccessful(uint32_t needed, uint32_t found, uint32_t shot) {
@@ -741,12 +679,11 @@ void PhotonBeamShootingTask::Run() {
                                           time, &photonRay, &Nl, &pdf);
             if (pdf == 0.f || Le.IsBlack()) continue;
             Spectrum alpha = (AbsDot(Nl, photonRay.d) * Le) / (pdf * lightPdf); //initial
+
             float sa = 1/(pdf*integrator->nPhotonBeamsWanted);
-//            if(pdf > 10.9)
-//            {
-//                int swaaaaaaaaggggg = 69696969;
-//            }
             float aa = 2 * acosf(1 - sa/(2*M_PI));
+            
+            int paths;
 
             if (!alpha.IsBlack()) {
 
@@ -760,7 +697,8 @@ void PhotonBeamShootingTask::Run() {
                 int maxdepth = 3;
                 int depth = 0;
                 bool inVolume = true;
-
+                float newradius;
+                
                 //intersect with group
                 while (inVolume){
                     if (volume->IntersectP(photonRay, &vt0, &vt1))
@@ -773,29 +711,37 @@ void PhotonBeamShootingTask::Run() {
                         //deposit photonbeam
                         Point start = photonRay(vt0);
                         Point end = photonRay(vt1);
-//                        Vector one = Normalize(end-start);
-//                        Vector two = Normalize(photonRay.d);
-//                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), radius, beamid));
-                        split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), aa, beamid,true));
+                        if(depth == 0){
+                            //construct cone
+                            split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), aa, beamid,true));
+                        }
+                        else
+                            //construct cylinder
+                            split_beam(localPhotonBeams,PhotonBeam(start, end, alpha, Normalize(end-start), aa, beamid));
+                        paths++;
                         
                         //multiple scattering
-//                        float ts = -logf(1-rng.RandomFloat())/0.9f;
+                        float ts = (-logf(1-rng.RandomFloat())/volume->sigma_t(photonRay(vt0), photonRay.d, photonRay.time).y())+vt0;
                         
-                        //deactivate multiple scattering
-                        float ts = 99999999999.f;
-//                        ts += 1.f/(depth+1.f);
-                        if(ts > vt0 && ts < vt1){
-//                            alpha = alpha * ts * volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time) *
-//                            Exp(-volume->sigma_t(photonRay(ts), photonRay.d, photonRay.time) * ts);
+                        if(ts < vt1){
 
-                            alpha = alpha * (ts-vt0) * volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time) *
-                            Exp(-Spectrum(1.3) * ts);
+                            //scale down power
+                            Spectrum st = volume->sigma_t(photonRay(ts), photonRay.d, photonRay.time);
+                            Spectrum ss = volume->sigma_s(photonRay(ts), photonRay.d, photonRay.time);
+                            alpha = alpha * (ts-vt0) * ss * Exp(-st * ts);
+                            alpha *= (st/ss);
                             
+                            //sample new direction
                             Vector newdirection;
                             float pdf = SampleScattering(photonRay.d, rng.RandomFloat(), rng.RandomFloat(),newdirection);
                             photonRay = RayDifferential(photonRay(ts),newdirection,0.f);
                             
-                            alpha *= (2/3.f);
+//                            float cone_radius = (vt1-vt0) * tanf(aa/2.f);
+//                            float coneheight = vt1-vt0;
+                            if(depth==0){
+                                aa = tanf(aa/2.f) * (vt1-ts);
+                            }
+                            
                             depth++;
                         }
                         else
@@ -837,12 +783,12 @@ void PhotonBeamShootingTask::Run() {
             
             //Merge Volume Photons into main
             if (!volumeDone) {
-                integrator->nVolumePaths += blockSize;
+                integrator->nVolumePaths += paths;
                 for (uint32_t i = 0; i < localPhotonBeams.size(); ++i)
                     PhotonBeams.push_back(localPhotonBeams[i]);
                 localPhotonBeams.erase(localPhotonBeams.begin(), localPhotonBeams.end());
                 //based on how many beams
-                if (PhotonBeams.size() >= integrator->nPhotonBeamsWanted)
+                if (integrator->nVolumePaths >= integrator->nPhotonBeamsWanted)
                     volumeDone = true;
             }
             
@@ -888,6 +834,34 @@ void PhotonBeamIntegrator::Preprocess(const Scene *scene,
         BeamMap = CreateBBHAccelerator(PhotonBeams);
 }
 
+//biweight smoothing
+float bi_kernel(float x){
+    x = Clamp(x, 0.0f, 1.0f);
+    float y = (15.f/16.f)*powf(1-powf(x,2),2.f);
+    return y;
+}
+
+//Color change due to attenuation along the beam
+Spectrum fb(Spectrum sigt, float v){
+    return Exp(-sigt * v);
+}
+
+//color change due to attenuation towards the eye
+Spectrum fe(Spectrum sigt, float u){
+    return Exp(-sigt * u);
+}
+
+//shading depends on the viewing angle
+Spectrum ff(Spectrum S, Spectrum p, float angle){
+    return (S * (p/sinf(angle)));
+}
+
+//shading is influenced by the photon beam’s thickness
+Spectrum ft(Spectrum power, float u){
+    return (power * bi_kernel(u));
+//    return power;
+}
+
 Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
             const Renderer *renderer,
             const RayDifferential &ray,
@@ -907,50 +881,45 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
     BeamMap->Intersect(ray, intersections);
     
     float nints = intersections.size();
+    vector<beamisect> copy = intersections;
     
     Spectrum L = Spectrum(0.f);
     Spectrum S;
     
-    //remove duplicates
     if(nints>0){
         for(int i = 0; i<intersections.size(); i++){
             for (int j = i+1; j< intersections.size(); j++){
-                if (intersections[i].beamid == intersections[j].beamid)
-                    intersections.erase(intersections.begin()+j-1);
+                if (!intersections[i].dup
+                    &&(intersections[i].beamid == intersections[j].beamid)){
+                    if(intersections[j].tbc>intersections[i].tbc){
+                        intersections[j].dup = true;
+                    }
+                    else{
+                        intersections[i].dup = true;
+                    }
+                }
             }
         }
     }
-    
+
     for (auto i = intersections.begin(); i != intersections.end(); i++) {
         
         //extinction coefficient
-        Spectrum sigt = vr->sigma_t(i->ipoint,ray.d,ray.time);
-        
-        //will always be the same anyhow
-        S = vr->sigma_s(i->ipoint,ray.d,ray.time);
-        
-        float sinb = sinf(i->angle);
-        Spectrum P = vr->p(i->ipoint,i->dir,w,1e-4f);
-        
-        //scale down power
-//        Spectrum power = (i->power) * i->tcb * S * Exp(-sigt*(i->tcb));
-        Spectrum power = i->power;
-        
-//        float a = i->tcb;
-//        float c = i->tbc;
-
-//        sigt = 0.8f; output 17
-//        sigt = 0.9f; //output 18
-        Spectrum term1 = Exp(-sigt * i->tcb);
-        Spectrum term2 = Exp(-sigt * i->tbc);
-        
-        Spectrum tester = P*power*term1*term2;
-        
-        L+=((P*power*term1*term2)/sinb);
+        if(!i->dup){
+            Spectrum sigt = vr->sigma_t(i->ipoint,ray.d,ray.time);
+            S = vr->sigma_s(i->ipoint,ray.d,ray.time);
+            Spectrum P = vr->p(i->ipoint,i->dir,w,1e-4f);
+            
+    //        sigt = 0.8f; output 17
+    //        sigt = 0.9f; //output 18
+            L+=(ft(i->power,i->ri) * ff(S,P,i->angle) * fe(sigt,i->tbc) * fb(sigt,i->tcb));
+        }
     }
     
     if(nints>0){
-        L *= (S / (ray.maxt-ray.mint));
+        L /= (ray.maxt-ray.mint);
+        
+        int tester = 0;
     }
     
     return L;
