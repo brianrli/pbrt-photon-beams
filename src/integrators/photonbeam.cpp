@@ -683,7 +683,7 @@ void PhotonBeamShootingTask::Run() {
             float sa = 1/(pdf*integrator->nPhotonBeamsWanted);
             float aa = 2 * acosf(1 - sa/(2*M_PI));
             
-            int paths;
+            int paths=0;
 
             if (!alpha.IsBlack()) {
 
@@ -877,7 +877,7 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
     
     Vector w = -ray.d;
 	vector<beamisect> intersections;
-    intersections.reserve(100);
+    intersections.reserve(10);
     BeamMap->Intersect(ray, intersections);
     
     float nints = intersections.size();
@@ -918,8 +918,6 @@ Spectrum PhotonBeamIntegrator::Li(const Scene *scene,
     
     if(nints>0){
         L /= (ray.maxt-ray.mint);
-        
-        int tester = 0;
     }
     
     return L;

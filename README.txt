@@ -1,1 +1,6 @@
-This is my pbrt extension of volumetric photon beams. It is very much a work in progress, although I hope to have a stable prototype by the end of the weekend.
+This is my pbrt extension of volumetric photon beams.
+
+I have implemented the following features:
+-multiple scattering cylinders
+-adaptive beam width (cones)
+-artistic control parameters

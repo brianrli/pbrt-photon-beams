@@ -67,11 +67,11 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output071.exr"
+            argument = "--outfile /Users/brianli/Desktop/pbrt_photon_beams/output/output077.exr"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/brianli/Desktop/pbrt_photon_beams/spotfog2.pbrt"
+            argument = "/Users/brianli/Desktop/pbrt_photon_beams/spotfog3.pbrt"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

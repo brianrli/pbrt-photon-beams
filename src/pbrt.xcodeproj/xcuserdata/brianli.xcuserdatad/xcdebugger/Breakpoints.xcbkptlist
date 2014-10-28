@@ -81,5 +81,31 @@
          landmarkName = "PhotonBeamIntegrator::Li(const Scene *scene, const Renderer *renderer, const RayDifferential &amp;ray, const Sample *sample, RNG &amp;rng, Spectrum *transmittance, MemoryArena &amp;arena)"
          landmarkType = "5">
       </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "433906671.149565"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "786"
+         endingLineNumber = "786"
+         landmarkName = "PhotonBeamShootingTask::Run()"
+         landmarkType = "5">
+      </FileBreakpoint>
+      <FileBreakpoint
+         shouldBeEnabled = "No"
+         ignoreCount = "0"
+         continueAfterRunningActions = "No"
+         filePath = "integrators/photonbeam.cpp"
+         timestampString = "434062848.296354"
+         startingColumnNumber = "9223372036854775807"
+         endingColumnNumber = "9223372036854775807"
+         startingLineNumber = "910"
+         endingLineNumber = "910"
+         landmarkName = "PhotonBeamIntegrator::Li(const Scene *scene, const Renderer *renderer, const RayDifferential &amp;ray, const Sample *sample, RNG &amp;rng, Spectrum *transmittance, MemoryArena &amp;arena)"
+         landmarkType = "5">
+      </FileBreakpoint>
    </FileBreakpoints>
 </Bucket>
